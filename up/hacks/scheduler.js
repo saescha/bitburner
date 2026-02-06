@@ -1,5 +1,6 @@
 import { getAllHosts } from "../util/hosts"
 
+/** @typedef {{pid:number,host:string}} Process */
 
 class Scheduler {
     /** @type {import("../../NetscriptDefinitions").Server[]} */
@@ -7,42 +8,59 @@ class Scheduler {
     /**@type {import("../../NetscriptDefinitions").NS} */
     ns = null
 
+
+
+    /** @typedef {{threads: number,process: Process}} Schedule*/
+
     /**
-     * 
      * @param {import("../../NetscriptDefinitions").NS} ns 
      * @param {import("../../NetscriptDefinitions").Server[]} hosts 
      */
     constructor(ns, hosts) {
         this.ns = ns
         this.ns.disableLog("getScriptRam")
-        this.hosts = hosts.toSorted((a, b) => a.maxRam - b.maxRam)
+        this.ns.disableLog("getServerUsedRam")
+        this.ns.disableLog("ps")
+        this.hosts = hosts.toSorted((a, b) => b.cpuCores - a.cpuCores)
         ns.print(this.hosts)
     }
     /**
-     * 
+     * @param {number} cores
      * @param {string} filename 
      * @param {number} threads 
      * @param {string[]} args 
+     * @returns {Schedule[]}
      */
-    schedule(filename, threads, ...args) {
+    run(cores, filename, threads, ...args) {
+        let result = []
         let needed = this.ns.getScriptRam(filename)
+
         for (let i = 0; i < this.hosts.length; i++) {
             const h = this.hosts[i];
-            const free = h.maxRam - this.ns.getServerUsedRam(h.hostname) - (h.hostname == "home" ? 30 : 0)
+            if (h.cpuCores < cores) {
+                break
+            }
+            if (h.cpuCores > cores) {
+                continue
+            }
+
+            const free = h.maxRam - this.ns.getServerUsedRam(h.hostname) - (h.hostname == "home" ? 100 : 0)
             const t = Math.min(Math.floor(free / needed), threads)
             if (t == 0) {
                 continue;
             }
 
-            this.ns.exec(filename, h.hostname, t, ...args)
+
+            const pid = this.ns.exec(filename, h.hostname, t, ...args)
+            result.push({ threads: t, process: { host: h.hostname, pid: pid } })
             threads -= t;
             if (threads == 0) {
-                return
+                break;
             }
         }
+        return result
     }
     /**
-     * 
      * @param {string} prog 
      * @param  {...string} args 
      * @returns {number}
@@ -57,28 +75,35 @@ class Scheduler {
         return result
     }
 
-    getAvailableRam() {
-        return this.hosts.reduce((p, c) => p + c.maxRam - this.ns.getServerUsedRam(c.hostname), 0) - 30
+    /**
+     * @param {Process} proc 
+     */
+    isRunning(proc) {
+        return this.ns.ps(proc.host).some(p => p.pid == proc.pid)
     }
 
+    /**
+     * @returns {Number}
+     */
+    getMaxCores() {
+        return this.hosts[0].cpuCores
+    }
+
+    /**
+     * @returns {Number}
+     */
+    getAvailableRam() {
+        return this.hosts.reduce((p, c) => p + c.maxRam - this.ns.getServerUsedRam(c.hostname), 0) - 100
+    }
+
+    /**
+     * @param {any[]} a 
+     * @param {any[]} b 
+     * @returns {boolean}
+     */
     compareArrays(a, b) {
         return JSON.stringify(a) === JSON.stringify(b);
     };
-    /**
-     * 
-     * @param {string} filename 
-     * @param {string[]} args 
-     */
-    unschedule(filename, ...args) {
-        for (let i = (this.hosts.length - 1); i >= 0; i--) {
-            const h = this.hosts[i]
-            const p = this.ns.ps(h.hostname).find(p => p.filename == filename && this.compareArrays(p.args, args))
-            if (p) {
-                this.ns.kill(p.filename, h.hostname, ...p.args)
-                return
-            }
-        }
-    }
 
     killAll() {
         for (const h of this.hosts) {
@@ -94,7 +119,12 @@ class Scheduler {
 
     }
 }
+/**
+ *  @exports Process
+
+ */
 
 export {
-    Scheduler
+    Scheduler,
+
 }

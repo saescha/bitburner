@@ -3,6 +3,7 @@ import { Scheduler } from "./scheduler";
 
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
+    const interval = 100
     ns.disableLog("getScriptRam")
     ns.disableLog("getServerUsedRam")
     let hosts = getAllHosts(ns)
@@ -23,6 +24,12 @@ export async function main(ns) {
         ns.print("hacking up to lvl ", maxLevel)
         if (maxLevel == 0) {
             maxLevel = 27
+        }
+
+        if (scheduler.getAvailableRam() < 20) {
+            ns.print("not enough ram, waiting")
+            await ns.sleep(interval)
+            continue
         }
 
         hosts = hosts.filter(h => h.moneyMax > 100000 && h.baseDifficulty <= maxLevel).toSorted((a, b) => b.moneyMax * b.serverGrowth - a.moneyMax * a.serverGrowth)
@@ -59,7 +66,7 @@ export async function main(ns) {
                 )
                 if (needed > running) {
                     ns.print("already weakening ", running)
-                    scheduler.schedule("x-weaken.js", needed - running, h);
+                    scheduler.run("x-weaken.js", needed - running, h);
                 }
                 continue
             } else {
@@ -69,11 +76,11 @@ export async function main(ns) {
             const m = ns.getServerMaxMoney(h)
             if (m * 0.8 > c) {
                 const threads = Math.round(Math.log(m / c) / Math.log(1.01))
-                scheduler.schedule("x-grow.js", threads, h);
-                scheduler.schedule("x-weaken.js", Math.ceil(threads / 13), h);
+                scheduler.run("x-grow.js", threads, h);
+                scheduler.run("x-weaken.js", Math.ceil(threads / 13), h);
             } else {
-                scheduler.schedule("x-hack.js", 100, h);
-                scheduler.schedule("x-weaken.js", 4, h);
+                scheduler.run("x-hack.js", 100, h);
+                scheduler.run("x-weaken.js", 4, h);
             }
         }
         await ns.sleep(1000)
