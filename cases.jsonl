@@ -1,0 +1,75 @@
+{"type":"Encryption II: Vigenère Cipher","input":["CACHEINBOXLOGINSHELLMODEM","MACINTOSH"],"expected":"OAEPRBBTVJLQOVGGZLXLOWQXA"}
+{"type":"Shortest Path in a Grid","input":[[1,1,1,1,1,1,0,0,1],[1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1],[0,0,1,1,1,1,1,1,1],[0,0,0,1,1,1,1,1,0]],"expected":"DRDRDDDDRRRDDDDRRR"}
+{"type":"Compression I: RLE Compression","input":"VVWWVVVVVVVVVVVb44444444444JMMMMMMMMMPIIIIIIIIIIIJJPPPPPPPPPPPPPttXXXXXXXXXXffIiEE6BBIIIIIIIIIIII","expected":"2V2W9V2V1b94241J9M1P9I2I2J9P4P2t9X1X2f1I1i2E162B9I3I"}
+{"type":"Encryption I: Caesar Cipher","input":["ARRAY QUEUE POPUP TRASH LOGIC",17],"expected":"JAAJH ZDNDN YXYDY CAJBQ UXPRL"}
+{"type":"Minimum Path Sum in a Triangle","input":[[2],[7,7],[2,8,7],[4,3,5,6],[7,5,1,3,6],[5,9,9,4,6,1],[7,5,1,5,4,5,7],[2,3,8,7,4,5,5,1],[9,4,3,6,7,7,2,2,7]],"expected":30}
+{"type":"Unique Paths in a Grid II","input":[[0,0,0,0,0,0,1,0,0,0,0],[0,0,1,0,0,0,1,0,1,0,0],[0,0,0,1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0,0,0]],"expected":35}
+{"type":"Find All Valid Math Expressions","input":["509758",-59],"expected":[]}
+{"type":"Total Ways to Sum","input":99,"expected":169229874}
+{"type":"Algorithmic Stock Trader IV","input":[5,[193,81,98,9,194,115,174,43,77]],"expected":295}
+{"type":"Compression II: LZ Decompression","input":"9Pfv8QFXjL07adZYltg512S6853lGc488j7BhD3pB790911W763WWW","expected":"Pfv8QFXjLadZYltggggggS6gggS6ggglGcS6ggj7BhD3pBgj7BhD3333333333W33333W3WWW"}
+{"type":"HammingCodes: Encoded Binary to Integer","input":"10100010101111001011011011000101","expected":10368705}
+{"type":"Subarray with Maximum Sum","input":[-1,9,-1,10,3,-5,-9,10,5,-9,-2,-9,-6,-9,-10,8,-8,-6,1,9,3,-3,1,-3,-6,-7,10,-8,-1,5,-5,-5,7,-3],"expected":22}
+{"type":"HammingCodes: Integer to Encoded Binary","input":743887,"expected":"01010011101011001111001111"}
+{"type":"Subarray with Maximum Sum","input":[-7,-2,0,5,-10,-1,-9,8,7,4,8,-2,8,6,8,1,-7],"expected":48}
+{"type":"Total Ways to Sum","input":95,"expected":104651418}
+{"type":"Generate IP Addresses","input":"11010942156","expected":["110.109.42.156"]}
+{"type":"Shortest Path in a Grid","input":[[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,1,1,0]],"expected":"DDDDDDRDDRRRR"}
+{"type":"Find Largest Prime Factor","input":48843615,"expected":53381}
+{"type":"Compression I: RLE Compression","input":"X888888888888888ZZ66iiiiiiiiiwwwwwwwwwwwwwwIIIIIgllllllllllllEppuuuuuuuuuuuuy","expected":"1X98682Z269i9w5w5I1g9l3l1E2p9u3u1y"}
+{"type":"Algorithmic Stock Trader II","input":[161,174,65,15,137,11,21,68,54,4,93,193,152,31,66,92,43,17,13,146,136,8,151,112,85,183,93,191,70,11,22,8,5,5,160,113,146,187],"expected":1154}
+{"type":"Algorithmic Stock Trader I","input":[71,82,4,115,167,148,81,17,101,151,39,192,124,142,183,105,95,55,91,51,63,57,182,193,83,105,130,182,145,93,137,61,171],"expected":189}
+{"type":"Algorithmic Stock Trader III","input":[144,130,185,199],"expected":69}
+{"type":"Algorithmic Stock Trader III","input":[61,89,125,26,72,41,120,114,146,176],"expected":214}
+{"type":"Compression II: LZ Decompression","input":"5TU4sW124SWd6348hvBhv6SA711X9834q5354Yx8K48164530l2836Nf1Mn4892sO49606XMSS","expected":"TU4sWsSWd6SWdhvBhv6SAAAAAAAAXAAAAAAAXA4q5XA4Yx8K5XA465XA40l20l20l20lNf1Mn420lNf1MnsO0lNf06XMSS"}
+{"type":"Encryption I: Caesar Cipher","input":["MACRO TABLE LOGIC ARRAY CACHE",15],"expected":"XLNCZ ELMWP WZRTN LCCLJ NLNSP"}
+{"type":"Sanitize Parentheses in Expression","input":")()(a)((()(a(","expected":["()(a)()a"]}
+{"type":"Algorithmic Stock Trader IV","input":[5,[62,46,159,136,55,186,41,140,58,32,156,183,174,153,42,94,154,56,161,146,157,199,122]],"expected":651}
+{"type":"Unique Paths in a Grid I","input":[9,6],"expected":1287}
+{"type":"Generate IP Addresses","input":"2279712565","expected":["227.97.125.65"]}
+{"type":"Compression II: LZ Decompression","input":"8P61dqls5154y1dq6686q6qimT4587nmS3ICc551T674g8YM176qvL0kZ8990QTuisKS304MZkF","expected":"P61dqls5dy1dq5dy1dq6q6qimT46q6qinmS3ICcS3ICcTcS3ICcg8YMIqvL0kZYMIqvL0k0QTuisKS3MZkF"}
+{"type":"Algorithmic Stock Trader II","input":[169,28,81,163,7,108,100],"expected":236}
+{"type":"Minimum Path Sum in a Triangle","input":[[1],[7,3],[6,2,2],[7,9,8,1],[3,1,6,8,7]],"expected":14}
+{"type":"HammingCodes: Integer to Encoded Binary","input":42,"expected":"10011010110"}
+{"type":"Minimum Path Sum in a Triangle","input":[[7],[7,8],[2,7,1],[8,6,6,5],[6,4,7,3,7],[7,5,3,6,6,2],[6,3,6,4,1,6,8],[5,3,3,5,4,4,9,9],[9,4,2,3,7,4,3,5,5]],"expected":38}
+{"type":"Total Ways to Sum","input":39,"expected":31184}
+{"type":"Encryption I: Caesar Cipher","input":["ARRAY DEBUG PRINT LOGIN QUEUE",5],"expected":"VMMVT YZWPB KMDIO GJBDI LPZPZ"}
+{"type":"HammingCodes: Integer to Encoded Binary","input":14,"expected":"10010110"}
+{"type":"HammingCodes: Integer to Encoded Binary","input":774892,"expected":"10111011011010011011101100"}
+{"type":"Subarray with Maximum Sum","input":[-2,-6,-5,0,8,-1,2,-6,-9,5,-6,8,9,7,3,-9,-4,4,-1,-5],"expected":27}
+{"type":"Algorithmic Stock Trader III","input":[157,152,149,139,14,85,100],"expected":86}
+{"type":"Proper 2-Coloring of a Graph","input":[13,[[1,10],[0,3],[2,4],[8,10],[1,3],[2,7],[1,7],[4,9],[2,11],[10,12],[4,5],[3,5],[7,8],[4,8],[5,11],[7,9],[0,5],[7,12],[6,11],[2,10],[3,9],[3,6]]],"expected":[]}
+{"type":"Array Jumping Game II","input":[1,2,1,1,4,1,0,0,3,4,1,4,3,0,0,4,4,3,4],"expected":7}
+{"type":"Array Jumping Game","input":[0,7,8,0,0,2,2,0,3,0,7,10,0],"expected":0}
+{"type":"Unique Paths in a Grid I","input":[8,3],"expected":36}
+{"type":"Encryption II: Vigenère Cipher","input":["FLASHCLOUDINBOXCACHEVIRUS","VERSION"],"expected":"APRKPQYJYUAVPBSGRUPSIDVLK"}
+{"type":"Generate IP Addresses","input":"2616036205","expected":["26.160.36.205"]}
+{"type":"Total Ways to Sum","input":49,"expected":173524}
+{"type":"Array Jumping Game","input":[9,9,4,6,1,6,0,6,7,4],"expected":1}
+{"type":"Compression II: LZ Decompression","input":"9h1HgLcE3V02KQ482pT798albLyXTC588dPErhpPi891R3220K5395JXFBdw1K02zm434cici","expected":"h1HgLcE3VKQgLcEpTVKQgLcEalbLyXTCalbLydPErhpPiydPErhpPRPRP0KP0KP05JXFBdw1KzmKzmKcici"}
+{"type":"Array Jumping Game II","input":[4,6,4,3,3,2,0,5,2,2,3,2,2,2,1],"expected":4}
+{"type":"Unique Paths in a Grid I","input":[11,5],"expected":1001}
+{"type":"Total Ways to Sum","input":49,"expected":173524}
+{"type":"Array Jumping Game II","input":[0,3,0,0,3,4,3,2,3,1],"expected":0}
+{"type":"Spiralize Matrix","input":[[21,24,7,25,36,6,30,10,8,47,43],[26,5,33,22,43,33,29,10,6,26,19],[43,29,34,46,48,46,20,5,5,4,14]],"expected":[21,24,7,25,36,6,30,10,8,47,43,19,14,4,5,5,20,46,48,46,34,29,43,26,5,33,22,43,33,29,10,6,26]}
+{"type":"Minimum Path Sum in a Triangle","input":[[4],[6,6],[1,8,4]],"expected":11}
+{"type":"HammingCodes: Encoded Binary to Integer","input":"11011011100101110011110010101100","expected":46382252}
+{"type":"Unique Paths in a Grid I","input":[11,4],"expected":286}
+{"type":"Array Jumping Game","input":[8,9,6,8],"expected":1}
+{"type":"Unique Paths in a Grid II","input":[[0,1,0,0,0,0,1,0],[1,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0],[1,0,0,0,0,0,0,0]],"expected":0}
+{"type":"Total Ways to Sum","input":50,"expected":204225}
+{"type":"Subarray with Maximum Sum","input":[6,-4,4,-9,-8,10,1,-7,-10,2,8,8,-4,5,-9,-10,0,7,-3,-7,2,-9,10,-9,9,-10,1,-4,9,5,-4,9,-6,8,-8],"expected":21}
+{"type":"Algorithmic Stock Trader III","input":[158,136,35,196,73,55,146,108,101,172,171,144,197,46,7,23],"expected":303}
+{"type":"Total Ways to Sum","input":75,"expected":8118263}
+{"type":"HammingCodes: Encoded Binary to Integer","input":"0010000000000000100000001000001000001010010101101011011111111110","expected":279346067454}
+{"type":"HammingCodes: Encoded Binary to Integer","input":"0010000000000111111000010110100110100101010011010100000000000111","expected":546133634793479}
+{"type":"Unique Paths in a Grid II","input":[[0,0,0,0,0,0,0,1,0,1],[0,0,1,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0],[1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,1,1,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,1,1,0,0,0],[0,0,0,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"expected":2564}
+{"type":"Array Jumping Game II","input":[6,2,3],"expected":1}
+{"type":"Compression II: LZ Decompression","input":"9QwYmKYmK6238HFcYxr8X628dIiuqzCV980911B74073","expected":"QwYmKYmK6mKHFcYxr8X8X8X8XdIiuqzCVdIiuqzCVddddddddddBdddBdddddddddd"}
+{"type":"HammingCodes: Encoded Binary to Integer","input":"0010000010000000000110001100111111100001100111111101000101010010","expected":13640306520402}
+{"type":"Array Jumping Game","input":[0,7,0,7,4,3,8,3,6,4,0,6,10,2,4],"expected":0}
+{"type":"Compression II: LZ Decompression","input":"61eJbo7113P5A867LPuB7Iv9941PuJ481O199Yc2jd8PnG932Ww968hVSx4VfP","expected":"1eJbo77P5Ao77P5Ao7LPuB7Ivo7LPuB7Iv1PuJB7IvO1Yc2jd8PnGPnGPnGPnGWwGPnGWwGPnhVSx4VfP"}
+{"type":"Array Jumping Game II","input":[5,6,1,1,5,4,1,4,6,4,2,3,6,1,3,2,0,0,4,0,3,5,3],"expected":5}
+{"type":"Unique Paths in a Grid I","input":[13,5],"expected":1820}
+{"type":"Algorithmic Stock Trader I","input":[72,82,52,171,70,166,118,143,39,63,52,29,10,21,64,191,26,86,122,56,52,117,193,151,101,133,167,134,107,26,64,185,112,61,151],"expected":183}
+{"type":"Compression II: LZ Decompression","input":"46h0V334ncwk493T41895yxS0q7451ws6v385Ma8Ue722ur981K","expected":"6h0Vh0Vncwk0Vh0T41wk0Vh0T4yxS0qxS0qxS01ws6vxS0Ma8UeUeUeUeUureUeUeUureK"}
