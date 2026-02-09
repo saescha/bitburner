@@ -1,5 +1,5 @@
 import { getAllHosts } from "./util/hosts";
-import { fmt, renderTable } from "./util/render-table";
+import { renderTable } from "./util/render-table";
 
 /** @param {import("../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
@@ -13,10 +13,11 @@ export async function main(ns) {
             diff: h.info.baseDifficulty,
             max_money: h.info.moneyMax,
             growth: h.info.serverGrowth,
-            money: fmt(h.info.moneyAvailable * 100 / h.info.moneyMax) + "",
-            secured: fmt((h.info.hackDifficulty - h.info.minDifficulty) / x * 100),
-            cpu: h.info.cpuCores,
-            ram: h.info.maxRam,
+            sec_abs: h.info.hackDifficulty,
+            hackChance: ns.hackAnalyzeChance(h.host) * 100,
+            hack: ns.hackAnalyze(h.host) * 100,
+            money: h.info.moneyAvailable * 100 / h.info.moneyMax,
+            secured: (h.info.hackDifficulty - h.info.minDifficulty) / x * 100,
         }
     }))
 }

@@ -1,106 +1,77 @@
-import { getAllHosts } from "../util/hosts";
-
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
-    const interval = 100
+    const interval = 300
     ns.disableLog("getScriptRam")
     ns.disableLog("getServerUsedRam")
     ns.disableLog("getServerMoneyAvailable")
     ns.disableLog("getServerSecurityLevel")
     ns.disableLog("sleep")
-    let servers = getAllHosts(ns)
-        .filter(h => h.info.hasAdminRights)
-        .map(s => {
-            // ns.scp(["x-grow.js", "x-hack.js", "x-weaken.js"], s.host)
-            return s.info
-        })
+    const h = String(ns.args[0] || "sigma-cosmetics")
 
-    const localhost = servers.find((s) => s.hostname == ns.getHostname())
-
-    const cores = localhost.cpuCores
-
-    servers.filter(h => h.moneyMax > 100000
-        && (ns.args.length == 0 || ns.args.includes(h.hostname))
-        && (h.moneyMax * 50 < h.moneyAvailable)
-        && (h.hackDifficulty < h.minDifficulty * 1.5)
-    ).toSorted(() => Math.random() - 0.5)
-
-    /**@type {{host:string,weakenThreads:Number,growThreads:Number,minDifficulty:Number,moneyMax:Number,weakenStart:Number,growStart:Number,ramConsumption:Number}[]} */
-    const hosts = []
-    let hackThreads = 50;
-    const weakenEffect = ns.weakenAnalyze(1, cores)
-    let ramAvailable = (localhost.maxRam - localhost.ramUsed) * 0.5
-
-    for (const s of servers) {
-        /**@type {{host:string,weakenThreads:Number,growThreads:Number,minDifficulty:Number,moneyMax:Number,weakenStart:Number,growStart:Number,ramConsumption:Number}} */
-        let h = {
-            host: s.hostname,
-            minDifficulty: s.minDifficulty,
-            growStart: 0,
-            growThreads: 0,
-            moneyMax: s.moneyMax,
-            ramConsumption: 0,
-            weakenStart: 0,
-            weakenThreads: 0
-        }
-        h.growThreads = Math.ceil(
-            ns.growthAnalyze(
-                h.host,
-                1 / ((1 - ns.hackAnalyze(h.host)) ** hackThreads),
-                cores
-            ))
-        const weakenDemand = ns.hackAnalyzeSecurity(hackThreads, h.host) +
-            ns.growthAnalyzeSecurity(h.growThreads, h.host, cores)
-        h.weakenThreads = Math.ceil(weakenDemand / weakenEffect)
-
-        let ram = h.weakenStart * ns.getScriptRam("x-weaken.js") * ns.getWeakenTime(h.host) / interval
-        ram += (h.growThreads * ns.getScriptRam("x-grow.js")) * ns.getGrowTime(h.host) / interval
-        ram += hackThreads * ns.getScriptRam("x-hack.js") * ns.getHackTime(h.host) / interval
-        h.ramConsumption = ram
-        if (ramAvailable > ram) {
-            hosts.push(h)
-            ramAvailable -= ram
-        }
+    const s = ns.getServer(h)
+    if (s.moneyAvailable < s.moneyMax) {
+        ns.tprint(`abort: ${h} is not fully grown, available money: ${s.moneyAvailable}, max money: ${s.moneyMax}`)
+        return
     }
 
-    while (true) {
-        for (const h of hosts) {
-            let now = Date.now()
-            let sl = ns.getServerSecurityLevel(h.host)
+    if (s.hackDifficulty > s.minDifficulty) {
+        ns.tprint(`abort: ${h} is not fully weakened, current security: ${s.hackDifficulty}, min security: ${s.minDifficulty}`)
+        return
+    }
 
+    const localhost = ns.getServer(ns.getHostname())
+    const cores = localhost.cpuCores
+    
+    let take = 0.1 
 
-            if (h.weakenStart == 0)
-                h.weakenStart = now
+    const weakenEffect = ns.weakenAnalyze(1, cores)
+    let ramAvailable = (localhost.maxRam - localhost.ramUsed) * 0.7
+    let ramNeeded = localhost.maxRam
 
-            if (ns.run("x-weaken.js", h.weakenThreads, h.host) == 0) {
-                throw new Error("OOM ")
-            }
+    let hack = {
+        threads: 0,
+        exec: () => { if (ns.run("x-hack.js", hack.threads, h) == 0) throw new Error("OOM") },
+        ram: ns.getScriptRam("x-hack.js"),
+        time: () => ns.getHackTime(h),
+    }
+    let grow = {
+        threads: 0,
+        exec: () => { if (ns.run("x-grow.js", grow.threads, h) == 0) throw new Error("OOM") },
+        ram: ns.getScriptRam("x-grow.js"),
+        time: () => ns.getGrowTime(h),
+    }
+    let weaken = {
+        threads: 0,
+        exec: () => { if (ns.run("x-weaken.js", weaken.threads, h) == 0) throw new Error("OOM") },
+        ram: ns.getScriptRam("x-weaken.js"),
+        time: () => ns.getWeakenTime(h),
+    }
 
-            const wt = ns.getGrowTime(h.host)
-            const gt = ns.getGrowTime(h.host)
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
-            if (now < h.weakenStart + wt )
-                continue
-
-            const money = ns.getServerMoneyAvailable(h.host)
-
-            if (h.growStart == 0)
-                h.growStart = now
-
-            if (ns.run("x-grow.js", h.growThreads, h.host) == 0) {
-                throw new Error("OOM ")
-            }
-
-            if (now < h.growStart + gt )
-                continue;
-            if (money < h.moneyMax * 0.90) {
-                continue
-            }
-
-            if (ns.run("x-hack.js", hackThreads, h.host) == 0) {
-                throw new Error("OOM ")
-            }
+    while (ramAvailable < ramNeeded) {
+        if (take < 0.01) {
+            ns.tprint("cannot find valid hack amount, aborting")
+            return
         }
-        await ns.sleep(interval)
+        ramNeeded = 0
+        hack.threads = Math.floor(ns.hackAnalyzeThreads(h, s.moneyAvailable * take))
+        ramNeeded += hack.threads * hack.ram * hack.time() / interval
+        grow.threads = Math.ceil(ns.growthAnalyze(h, 1 / take, cores))
+        ramNeeded += grow.threads * grow.ram * grow.time() / interval
+        const weakenDemand = ns.hackAnalyzeSecurity(hack.threads, h) + 0.004 * grow.threads
+        weaken.threads = Math.ceil(weakenDemand / weakenEffect)
+        ramNeeded += weaken.threads * weaken.ram * weaken.time() / interval
+        take *= 0.9
+    }
+
+    ns.tprint(`running hacks on ${h} with ${hack.threads} hack threads, ${grow.threads} grow threads and ${weaken.threads} weaken threads, stealing ${take * 100}% of the money`)
+
+    while (true) {
+        weaken.exec()
+        setTimeout(grow.exec, weaken.time() - grow.time() - interval * 2 / 3)
+        setTimeout(hack.exec, weaken.time() - hack.time() - interval / 3)
+
+        await sleep(interval)
     }
 }
