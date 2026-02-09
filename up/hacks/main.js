@@ -1,89 +1,106 @@
 import { getAllHosts } from "../util/hosts";
-import { Scheduler } from "./scheduler";
 
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
     const interval = 100
     ns.disableLog("getScriptRam")
     ns.disableLog("getServerUsedRam")
-    let hosts = getAllHosts(ns)
+    ns.disableLog("getServerMoneyAvailable")
+    ns.disableLog("getServerSecurityLevel")
+    ns.disableLog("sleep")
+    let servers = getAllHosts(ns)
         .filter(h => h.info.hasAdminRights)
-        .map(s => s.info)
+        .map(s => {
+            // ns.scp(["x-grow.js", "x-hack.js", "x-weaken.js"], s.host)
+            return s.info
+        })
 
-    const scheduler = new Scheduler(ns, hosts)
-    scheduler.killAll()
+    const localhost = servers.find((s) => s.hostname == ns.getHostname())
 
-    let maxLevel = Number(ns.read("/hacks/max-level.txt"))
-    if (maxLevel == 0) {
-        maxLevel = 27
+    const cores = localhost.cpuCores
+
+    servers.filter(h => h.moneyMax > 100000
+        && (ns.args.length == 0 || ns.args.includes(h.hostname))
+        && (h.moneyMax * 50 < h.moneyAvailable)
+        && (h.hackDifficulty < h.minDifficulty * 1.5)
+    ).toSorted(() => Math.random() - 0.5)
+
+    /**@type {{host:string,weakenThreads:Number,growThreads:Number,minDifficulty:Number,moneyMax:Number,weakenStart:Number,growStart:Number,ramConsumption:Number}[]} */
+    const hosts = []
+    let hackThreads = 50;
+    const weakenEffect = ns.weakenAnalyze(1, cores)
+    let ramAvailable = (localhost.maxRam - localhost.ramUsed) * 0.5
+
+    for (const s of servers) {
+        /**@type {{host:string,weakenThreads:Number,growThreads:Number,minDifficulty:Number,moneyMax:Number,weakenStart:Number,growStart:Number,ramConsumption:Number}} */
+        let h = {
+            host: s.hostname,
+            minDifficulty: s.minDifficulty,
+            growStart: 0,
+            growThreads: 0,
+            moneyMax: s.moneyMax,
+            ramConsumption: 0,
+            weakenStart: 0,
+            weakenThreads: 0
+        }
+        h.growThreads = Math.ceil(
+            ns.growthAnalyze(
+                h.host,
+                1 / ((1 - ns.hackAnalyze(h.host)) ** hackThreads),
+                cores
+            ))
+        const weakenDemand = ns.hackAnalyzeSecurity(hackThreads, h.host) +
+            ns.growthAnalyzeSecurity(h.growThreads, h.host, cores)
+        h.weakenThreads = Math.ceil(weakenDemand / weakenEffect)
+
+        let ram = h.weakenStart * ns.getScriptRam("x-weaken.js") * ns.getWeakenTime(h.host) / interval
+        ram += (h.growThreads * ns.getScriptRam("x-grow.js")) * ns.getGrowTime(h.host) / interval
+        ram += hackThreads * ns.getScriptRam("x-hack.js") * ns.getHackTime(h.host) / interval
+        h.ramConsumption = ram
+        if (ramAvailable > ram) {
+            hosts.push(h)
+            ramAvailable -= ram
+        }
     }
-    hosts = hosts.filter(h => h.moneyMax > 100000 && h.baseDifficulty <= maxLevel).toSorted((a, b) => b.moneyMax * b.serverGrowth - a.moneyMax * a.serverGrowth)
 
     while (true) {
-        let maxLevel = Number(ns.read("/hacks/max-level.txt"))
-        ns.print("hacking up to lvl ", maxLevel)
-        if (maxLevel == 0) {
-            maxLevel = 27
-        }
+        for (const h of hosts) {
+            let now = Date.now()
+            let sl = ns.getServerSecurityLevel(h.host)
 
-        if (scheduler.getAvailableRam() < 20) {
-            ns.print("not enough ram, waiting")
-            await ns.sleep(interval)
-            continue
-        }
 
-        hosts = hosts.filter(h => h.moneyMax > 100000 && h.baseDifficulty <= maxLevel).toSorted((a, b) => b.moneyMax * b.serverGrowth - a.moneyMax * a.serverGrowth)
+            if (h.weakenStart == 0)
+                h.weakenStart = now
 
-        for (let i = 0; i < hosts.length; i++) {
-            const h = hosts[i].hostname;
-            const minLvl = ns.getServerMinSecurityLevel(h)
-            const currentLvl = ns.getServerSecurityLevel(h)
-
-            const rHacks = scheduler.getThreads("x-hack.js", h)
-            const rGrows = scheduler.getThreads("x-grow.js", h)
-            const rWeaken = scheduler.getThreads("x-weaken.js", h)
-
-            let secDelta = currentLvl - minLvl + ns.hackAnalyzeSecurity(rHacks, h) + ns.growthAnalyzeSecurity(rGrows)
-
-            let secPlan = 0
-            while (Math.abs(secDelta - secPlan) > 0.1) {
-                secPlan = ns.weakenAnalyze(secDelta * 20, 5)
+            if (ns.run("x-weaken.js", h.weakenThreads, h.host) == 0) {
+                throw new Error("OOM ")
             }
-            ns.hackAnalyzeSecurity
 
+            const wt = ns.getGrowTime(h.host)
+            const gt = ns.getGrowTime(h.host)
 
-
-
-            if (minLvl * 1.1 < currentLvl) {
+            if (now < h.weakenStart + wt )
                 continue
 
-                ns.print("need to weaken ", h)
-                const running = scheduler.getThreads("x-weaken.js", h)
-                const needed = Math.round(
-                    (currentLvl - minLvl) * 20
-                    + rHacks * 25
-                    + rGrows * 12
-                )
-                if (needed > running) {
-                    ns.print("already weakening ", running)
-                    scheduler.run("x-weaken.js", needed - running, h);
-                }
-                continue
-            } else {
-                ns.print(`${h} already weak: ${currentLvl}/${minLvl}`)
+            const money = ns.getServerMoneyAvailable(h.host)
+
+            if (h.growStart == 0)
+                h.growStart = now
+
+            if (ns.run("x-grow.js", h.growThreads, h.host) == 0) {
+                throw new Error("OOM ")
             }
-            const c = ns.getServerMoneyAvailable(h)
-            const m = ns.getServerMaxMoney(h)
-            if (m * 0.8 > c) {
-                const threads = Math.round(Math.log(m / c) / Math.log(1.01))
-                scheduler.run("x-grow.js", threads, h);
-                scheduler.run("x-weaken.js", Math.ceil(threads / 13), h);
-            } else {
-                scheduler.run("x-hack.js", 100, h);
-                scheduler.run("x-weaken.js", 4, h);
+
+            if (now < h.growStart + gt )
+                continue;
+            if (money < h.moneyMax * 0.90) {
+                continue
+            }
+
+            if (ns.run("x-hack.js", hackThreads, h.host) == 0) {
+                throw new Error("OOM ")
             }
         }
-        await ns.sleep(1000)
-
+        await ns.sleep(interval)
     }
 }

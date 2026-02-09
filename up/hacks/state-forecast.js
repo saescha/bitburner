@@ -57,6 +57,10 @@ class StateForecast {
         this.deltas = this.deltas.filter(d => cb(d.proc))
     }
 
+    /**
+     * 
+     * @param {State} state 
+     */
     setState(state) {
         this.state = state
     }
@@ -74,4 +78,8 @@ class StateForecast {
             this.deltas.splice(index, 0, { time, delta, proc })
         }
     }
+}
+
+export{
+    StateForecast
 }

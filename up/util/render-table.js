@@ -50,7 +50,7 @@ function fmt(value) {
 
 function format(num) {
     return num
-        .toFixed(2)               // max two decimals
+        .toFixed(3)               // max two decimals
         .replace(/\.?0+$/, '');   // remove trailing zeros
 }
 export {
