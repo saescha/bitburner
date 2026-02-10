@@ -16,14 +16,15 @@ export async function main(ns) {
     ns.scp(["x-grow.js",
         "x-hack.js",
         "x-weaken.js",
+        "x-share.js",
         "show-rooted.js",
         "/util/hosts.js",
         "/util/render-table.js",
-        "/hacks/simple.js",
-        "/hacks/max.js"
+        "/hacks/main.js",
+        "/hacks/restore.js"
     ], hostname)
 
-    ns.exec("/hacks/simple.js",hostname)
-
+    const ramNeeded = ns.getScriptRam("x-share.js", hostname)
+    ns.exec("x-share.js", hostname, Math.floor(2 ** 20 / ramNeeded))
 
 }
