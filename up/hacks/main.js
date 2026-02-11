@@ -1,82 +1,121 @@
+import { getAllHosts } from "../util/hosts"
+
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
-    const interval = 200
-    ns.disableLog("getScriptRam")
-    ns.disableLog("getServerUsedRam")
-    ns.disableLog("getServerMoneyAvailable")
-    ns.disableLog("getServerSecurityLevel")
-    ns.disableLog("sleep")
-    ns.disableLog("run")
-    const h = String(ns.args[0] || "sigma-cosmetics")
+    ns.disableLog("ALL")
+    const interval = 100
+    const spacer = interval / 5
+    const take = 0.5
 
-    const s = ns.getServer(h)
-    if (s.moneyAvailable < s.moneyMax) {
-        ns.tprint(`abort: ${h} is not fully grown, available money: ${s.moneyAvailable}, max money: ${s.moneyMax}`)
-        return
-    }
-
-    if (s.hackDifficulty > s.minDifficulty) {
-        ns.tprint(`abort: ${h} is not fully weakened, current security: ${s.hackDifficulty}, min security: ${s.minDifficulty}`)
-        return
-    }
-
+    /**
+     * 
+     * @param {import("../../NetscriptDefinitions").Server} s 
+     * @returns {Number}
+     */
     const localhost = ns.getServer(ns.getHostname())
     const cores = localhost.cpuCores
 
-    let take = 0.2 / 0.9
+    const myServers = getAllHosts(ns)
+        .map(h => h.info)
+        .filter(s => s.hasAdminRights && s.moneyMax > 0
+            && s.moneyAvailable === s.moneyMax
+            && s.hackDifficulty === s.minDifficulty
+        )
+        .map(srv => {
+            const s = srv
+            const h = s.hostname
+            let r = {}
 
-    const weakenEffect = ns.weakenAnalyze(1, cores)
-    let ramAvailable = (localhost.maxRam - localhost.ramUsed) * 0.9
-    let ramNeeded = localhost.maxRam
+            const hackThreads = Math.floor(ns.hackAnalyzeThreads(h, s.moneyAvailable * take))
+            const growThreads = Math.ceil(ns.growthAnalyze(h, 1 / (1 - take), cores))
+            const weakenThreads = Math.ceil(ns.hackAnalyzeSecurity(hackThreads, h) + 0.004 * growThreads / ns.weakenAnalyze(1, cores))
+            r.hack = {
+                threads: hackThreads,
+                exec: () => {
+                    if (ns.getServerSecurityLevel(h) > s.minDifficulty) {
+                        return
+                    }
+                    if (ns.run("x-hack.js", hackThreads, h) == 0) throw new Error("OOM")
+                },
+                ram: ns.getScriptRam("x-hack.js") * hackThreads,
+                time: ns.getHackTime(h),
+            }
+            r.grow = {
+                threads: growThreads,
+                exec: () => {
+                    if (ns.run("x-grow.js", growThreads, h) == 0) throw new Error("OOM")
+                },
+                ram: ns.getScriptRam("x-grow.js") * growThreads,
+                time: ns.getGrowTime(h),
+            }
+            r.weaken = {
+                threads: weakenThreads,
+                exec: () => {
+                    if (ns.run("x-weaken.js", weakenThreads, h) == 0) throw new Error("OOM")
+                },
+                ram: ns.getScriptRam("x-weaken.js") * weakenThreads,
+                time: ns.getWeakenTime(h),
+            },
+                r.moneyMax = s.moneyMax
+            r.hostname = h
+            return r
+        })
+        .toSorted((a, b) => b.moneyMax - a.moneyMax)
 
-    let hack = {
-        threads: 0,
-        exec: () => { if (ns.run("x-hack.js", hack.threads, h) == 0) throw new Error("OOM") },
-        ram: ns.getScriptRam("x-hack.js"),
-        time: () => ns.getHackTime(h),
-    }
-    let grow = {
-        threads: 0,
-        exec: () => { if (ns.run("x-grow.js", grow.threads, h) == 0) throw new Error("OOM") },
-        ram: ns.getScriptRam("x-grow.js"),
-        time: () => ns.getGrowTime(h),
-    }
-    let weaken = {
-        threads: 0,
-        exec: () => { if (ns.run("x-weaken.js", weaken.threads, h) == 0) throw new Error("OOM") },
-        ram: ns.getScriptRam("x-weaken.js"),
-        time: () => ns.getWeakenTime(h),
-    }
+    const ramAvailable = localhost.maxRam - localhost.ramUsed
 
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+    let schedule = []
+    ns.print(`analyzing possible targets: ${myServers.map(s => s.hostname).join(", ")}`)
 
-    while (ramAvailable < ramNeeded) {
-        take *= 0.9
-        ns.print(`calculate ram taking ${take * 100}% `)
-        if (take < 0.01) {
-            ns.tprint("cannot find valid hack amount, aborting")
-            return
+    for (const s of myServers) {
+        let hostSchedule = []
+        for (let i = 0; i * interval < s.weaken.time; i++) {
+            const t = i * interval
+            hostSchedule.push({ r: s.weaken.exec, t: t, ram: s.weaken.ram })
+            hostSchedule.push({ r: s.grow.exec, t: t + s.weaken.time - s.grow.time - spacer, ram: s.grow.ram })
+            if (i % 5 == 0) {
+                //skip some hacks to stabilize the server
+                continue
+            }
+            hostSchedule.push({ r: s.hack.exec, t: t + s.weaken.time - s.hack.time - spacer * 2, ram: s.hack.ram })
         }
-        ramNeeded = 0
-        hack.threads = Math.floor(ns.hackAnalyzeThreads(h, s.moneyAvailable * take))
-
-        ramNeeded += hack.threads * hack.ram * hack.time() / interval
-        grow.threads = Math.ceil(ns.growthAnalyze(h, 1 / (1 - take), cores) * 1.5)
-        ramNeeded += grow.threads * grow.ram * grow.time() / interval
-        const weakenDemand = ns.hackAnalyzeSecurity(hack.threads, h) + 0.004 * grow.threads
-        weaken.threads = Math.ceil(weakenDemand * 1.5 / weakenEffect)
-        ramNeeded += weaken.threads * weaken.ram * weaken.time() / interval
-        ns.print(`taking ${ns.nFormat(take, '0.000%')}% requires ${ns.nFormat(ramNeeded * 2 ** 20, '0.000 ib')} only ${ns.nFormat(ramAvailable * 2 ** 20, '0.000 ib')} available`)
-
+        hostSchedule = hostSchedule.filter(sched => sched.t < s.weaken.time)
+        const hostRam = hostSchedule.reduce((a, b) => a + b.ram, 0)
+        if (hostRam > ramAvailable) {
+            ns.tprint(`skipping ${s.hostname} because needed RAM ${hostRam} exceeds available RAM ${ramAvailable}`)
+            continue
+        }
+        ns.tprint(`scheduling hacks on ${s.hostname} with ${s.hack.threads} hack threads, ${s.grow.threads} grow threads and ${s.weaken.threads} weaken threads, stealing ${take * 100}% of the money`)
+        schedule.push(...hostSchedule)
     }
 
-    ns.tprint(`running hacks on ${h} with ${hack.threads} hack threads, ${grow.threads} grow threads and ${weaken.threads} weaken threads, stealing ${take * 100}% of the money`)
+    const lastT = schedule.reduce((a, b) => Math.max(a, b.t), 0)
+
+    // sprinkle in some restores to keep the servers in good shape
+    for (let i = 0; i * 5 * 60 * 1000 < lastT; i++) {
+        const t = i * 5 * 60 * 1000
+        schedule.push({ r: () => { ns.run("hacks/restore.js") }, t: t, ram: 0 })
+    }
+
+    schedule = schedule.toSorted((a, b) => a.t - b.t)
+
+    if (schedule.length == 0) {
+        ns.tprint("no hacks scheduled, exiting")
+        return
+    }
+    ns.print(schedule)
+
+    schedule.push({ r: () => { ns.run("hacks/restore.js") }, t: 0, ram: 0 })
 
     while (true) {
-        weaken.exec()
-        setTimeout(grow.exec, weaken.time() - grow.time() - interval * 2 / 3)
-        setTimeout(hack.exec, weaken.time() - hack.time() - interval / 3)
-
-        await sleep(interval)
+        const start = performance.now()
+        for (const s of schedule) {
+            const t = performance.now() - start
+            if (t < s.t) {
+                await ns.sleep(s.t - t)
+            }
+            s.r()
+        }
     }
+
 }

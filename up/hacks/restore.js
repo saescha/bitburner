@@ -3,12 +3,7 @@ import { fmt } from "../util/render-table";
 
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
-    const interval = 100
-    ns.disableLog("getScriptRam")
-    ns.disableLog("getServerUsedRam")
-    ns.disableLog("getServerMoneyAvailable")
-    ns.disableLog("getServerSecurityLevel")
-    ns.disableLog("exec")
+    ns.disableLog("ALL")
     let servers = getAllHosts(ns)
         .filter(h => h.info.hasAdminRights)
         .map(s => {
@@ -30,7 +25,7 @@ export async function main(ns) {
         const weakenDemand = (h.hackDifficulty + ns.growthAnalyzeSecurity(growThreads, h.hostname, cores) - h.minDifficulty)
         const weakenThreads = Math.ceil(weakenDemand / ns.weakenAnalyze(1, cores))
         if (weakenThreads < 1) {
-            ns.tprint(`maxing ${h.hostname}: already max`)
+            ns.print(`maxing ${h.hostname}: already max`)
             continue
         }
         const ramNeeded = ns.getScriptRam("x-weaken.js") * weakenThreads + ns.getScriptRam("x-grow.js") * growThreads
@@ -41,6 +36,6 @@ export async function main(ns) {
         ns.run("x-weaken.js", weakenThreads, h.hostname)
         if (growThreads > 0)
             ns.run("x-grow.js", growThreads, h.hostname)
-        ns.tprint(`maxing ${h.hostname}: grow ${fmt(ns.getGrowTime(h.hostname))} weaken ${fmt(ns.getWeakenTime(h.hostname))}`)
+        ns.print(`maxing ${h.hostname}: grow ${fmt(ns.getGrowTime(h.hostname))} weaken ${fmt(ns.getWeakenTime(h.hostname))}`)
     }
 }

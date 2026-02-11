@@ -42,6 +42,7 @@ export function main(ns) {
         if (openPorts >= ns.getServerNumPortsRequired(host) && ns.getHackingLevel() >= ns.getServerRequiredHackingLevel(host)) {
             ns.nuke(host);
             ns.tprint(`Gained root access on ${host}`);
+            ns.run("hacks/restore.js", 1, host);
         }
     }
 }
