@@ -4,10 +4,17 @@ import { renderTable } from "./render-table"
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
 
+
+
     const hf = ns.formulas.hacking
     const h = String(ns.args[0] || "sigma-cosmetics")
     const player = ns.getPlayer()
     const s = ns.getServer(h)
+
+    ns.tprint(ns.getWeakenTime(h))
+    ns.tprint(ns.getGrowTime(h))
+    ns.tprint(ns.getHackTime(h))
+    return
 
     const hackThreads = 50
 
@@ -28,9 +35,6 @@ export async function main(ns) {
 
     const stealPercent = 1 - ((1 - ns.hackAnalyze(h) * m) ** hackThreads)
     ns.tprint(s.moneyAvailable * stealPercent)
-
-    return
-
 
     const remainFactor = 1 - stealPercent
 
