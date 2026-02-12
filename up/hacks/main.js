@@ -20,6 +20,7 @@ export async function main(ns) {
         .filter(s => s.hasAdminRights && s.moneyMax > 0
             && s.moneyAvailable === s.moneyMax
             && s.hackDifficulty === s.minDifficulty
+            && s.hostname != "fulcrumassets"
         )
         .map(srv => {
             const s = srv
@@ -79,7 +80,7 @@ export async function main(ns) {
             }
             hostSchedule.push({ r: s.hack.exec, t: t + s.weaken.time - s.hack.time - spacer * 2, ram: s.hack.ram })
         }
-        hostSchedule = hostSchedule.filter(sched => sched.t < s.weaken.time)
+        // hostSchedule = hostSchedule.filter(sched => sched.t < s.weaken.time)
         const hostRam = hostSchedule.reduce((a, b) => a + b.ram, 0)
         if (hostRam > ramAvailable) {
             ns.tprint(`skipping ${s.hostname} because needed RAM ${hostRam} exceeds available RAM ${ramAvailable}`)

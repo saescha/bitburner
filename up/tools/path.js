@@ -13,7 +13,7 @@ export async function main(ns) {
         return {
             host: h.host,
             company: h.info.organizationName,
-            path: h.path.map(p=>`connect ${p}`).join("; "),
+            path: h.path.map(p=>`connect ${p}`).join("; ")+"; backdoor",
         }
     }))
 }
