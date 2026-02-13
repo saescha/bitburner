@@ -3,9 +3,9 @@ import { getAllHosts } from "../util/hosts"
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
     ns.disableLog("ALL")
-    const interval = 100
+    const interval = 5000
     const spacer = interval / 5
-    const take = 0.5
+    const take = 0.05
 
     /**
      * 
@@ -21,6 +21,7 @@ export async function main(ns) {
             && s.moneyAvailable === s.moneyMax
             && s.hackDifficulty === s.minDifficulty
             && s.hostname != "fulcrumassets"
+            && (ns.args.length == 0 || ns.args.includes(s.hostname))
         )
         .map(srv => {
             const s = srv
@@ -36,7 +37,7 @@ export async function main(ns) {
                     if (ns.getServerSecurityLevel(h) > s.minDifficulty) {
                         return
                     }
-                    if (ns.run("x-hack.js", hackThreads, h) == 0) throw new Error("OOM")
+                    if (ns.run("x-hack.js", hackThreads, h) == 0) ns.tprint("OOM")
                 },
                 ram: ns.getScriptRam("x-hack.js") * hackThreads,
                 time: ns.getHackTime(h),
@@ -44,7 +45,7 @@ export async function main(ns) {
             r.grow = {
                 threads: growThreads,
                 exec: () => {
-                    if (ns.run("x-grow.js", growThreads, h) == 0) throw new Error("OOM")
+                    if (ns.run("x-grow.js", growThreads, h) == 0) ns.tprint("OOM")
                 },
                 ram: ns.getScriptRam("x-grow.js") * growThreads,
                 time: ns.getGrowTime(h),
@@ -52,7 +53,7 @@ export async function main(ns) {
             r.weaken = {
                 threads: weakenThreads,
                 exec: () => {
-                    if (ns.run("x-weaken.js", weakenThreads, h) == 0) throw new Error("OOM")
+                    if (ns.run("x-weaken.js", weakenThreads, h) == 0) ns.tprint("OOM")
                 },
                 ram: ns.getScriptRam("x-weaken.js") * weakenThreads,
                 time: ns.getWeakenTime(h),
@@ -66,28 +67,33 @@ export async function main(ns) {
     const ramAvailable = localhost.maxRam - localhost.ramUsed
 
     let schedule = []
+    let prepSchedule = []
     ns.print(`analyzing possible targets: ${myServers.map(s => s.hostname).join(", ")}`)
 
     for (const s of myServers) {
         let hostSchedule = []
         for (let i = 0; i * interval < s.weaken.time; i++) {
             const t = i * interval
-            hostSchedule.push({ r: s.weaken.exec, t: t, ram: s.weaken.ram })
-            hostSchedule.push({ r: s.grow.exec, t: t + s.weaken.time - s.grow.time - spacer, ram: s.grow.ram })
-            if (i % 5 == 0) {
-                //skip some hacks to stabilize the server
-                continue
-            }
-            hostSchedule.push({ r: s.hack.exec, t: t + s.weaken.time - s.hack.time - spacer * 2, ram: s.hack.ram })
+            hostSchedule.push({ r: s.weaken.exec, t: t, ram: s.weaken.ram, batch: i })
+            hostSchedule.push({ r: s.grow.exec, t: t + s.weaken.time - s.grow.time - spacer, ram: s.grow.ram, batch: i })
+            hostSchedule.push({ r: s.hack.exec, t: t + s.weaken.time - s.hack.time - spacer * 2, ram: s.hack.ram, batch: i })
         }
         // hostSchedule = hostSchedule.filter(sched => sched.t < s.weaken.time)
-        const hostRam = hostSchedule.reduce((a, b) => a + b.ram, 0)
-        if (hostRam > ramAvailable) {
-            ns.tprint(`skipping ${s.hostname} because needed RAM ${hostRam} exceeds available RAM ${ramAvailable}`)
-            continue
-        }
+        // const hostRam = hostSchedule.reduce((a, b) => a + b.ram, 0)
+        // if (hostRam > ramAvailable) {
+        //     ns.tprint(`skipping ${s.hostname} because needed RAM ${hostRam} exceeds available RAM ${ramAvailable}`)
+        //     continue
+        // }
         ns.tprint(`scheduling hacks on ${s.hostname} with ${s.hack.threads} hack threads, ${s.grow.threads} grow threads and ${s.weaken.threads} weaken threads, stealing ${take * 100}% of the money`)
-        schedule.push(...hostSchedule)
+        prepSchedule.push(...hostSchedule)
+        schedule.push(...hostSchedule.map(
+            (job) => {
+                let r = { ...job }
+                if (r.t > s.weaken.time) {
+                    r.t -= s.weaken.time
+                }
+                return r
+            }))
     }
 
     const lastT = schedule.reduce((a, b) => Math.max(a, b.t), 0)
@@ -98,6 +104,8 @@ export async function main(ns) {
         schedule.push({ r: () => { ns.run("hacks/restore.js") }, t: t, ram: 0 })
     }
 
+    prepSchedule = prepSchedule.toSorted((a, b) => a.t - b.t)
+
     schedule = schedule.toSorted((a, b) => a.t - b.t)
 
     if (schedule.length == 0) {
@@ -106,8 +114,15 @@ export async function main(ns) {
     }
     ns.print(schedule)
 
-    schedule.push({ r: () => { ns.run("hacks/restore.js") }, t: 0, ram: 0 })
 
+    const start = performance.now()
+    for (const s of prepSchedule) {
+        const t = performance.now() - start
+        if (t < s.t) {
+            await ns.sleep(s.t - t)
+        }
+        s.r()
+    }
     while (true) {
         const start = performance.now()
         for (const s of schedule) {
