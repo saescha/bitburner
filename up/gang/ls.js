@@ -6,13 +6,16 @@ export async function main(ns) {
 
     const g = ns.gang
 
+    renderTable(ns.tprint, [g.getGangInformation()])
+
     const others = g.getOtherGangInformation()
+    renderTable(ns.tprint, Object.keys(others).map((k) => {
 
-    for (const o in others) {
-        ns.tprint(o)
-        ns.tprint(others[o])
-    }
-
+        return {
+            name: k,
+            ...others[k]
+        }
+    }))
 
     renderTable(ns.tprintf,
         g.getTaskNames().map((t) => {

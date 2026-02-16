@@ -9,7 +9,14 @@ export async function main(ns) {
     g.getMemberNames().forEach((n) => {
         const m = g.getMemberInformation(n)
         if (m.str > 80) {
-            g.setMemberTask(n, "Mug People")
+            if (Math.random() < 0.5) {
+                g.setMemberTask(n, "Traffick Illegal Arms")
+            }
+            else {
+                g.setMemberTask(n, "Vigilante Justice")
+            }
+            // g.setMemberTask(n, "Territory Warfare")
+
         }
         else {
             g.setMemberTask(n, "Train Combat")
@@ -26,7 +33,8 @@ export async function main(ns) {
             def: i.def,
             agi: i.agi,
             dex: i.dex,
-            cha: i.cha
+            cha: i.cha,
+            earned: i.moneyGain
         }
     }))
 

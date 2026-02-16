@@ -30,7 +30,10 @@ export async function main(ns) {
             def: i.def,
             agi: i.agi,
             dex: i.dex,
-            cha: i.cha
+            cha: i.cha,
+            earned: i.moneyGain,
+            aug: String(i.augmentations)
         }
     }))
+
 }
