@@ -1,8 +1,8 @@
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
     const take = 0.1
-    let interval = 100
-    let spacer = interval / 5
+    let interval = 150
+    let spacer = interval / 3
     ns.disableLog("ALL")
 
     function debug(...args) {
@@ -10,36 +10,53 @@ export async function main(ns) {
         // ns.print(t, ...args)
     }
 
+    /**@typedef {{hostname: String,hasAdminRights:boolean,hackDifficulty: Number,moneyAvailable:Number,moneyMax: Number,minDifficulty:Number,timeOffset:Number}} target*/
+
+    /** @type {target[]} */
     const servers = (ns.args.length > 0 ? ns.args.map(String) : ["sigma-cosmetics"])
-        .map(h => ns.getServer(h))
+        .map((h, i) => {
+            const s = ns.getServer(h)
+            return {
+                hostname: s.hostname,
+                hasAdminRights: s.hasAdminRights,
+                hackDifficulty: s.hackDifficulty,
+                moneyAvailable: s.moneyAvailable,
+                minDifficulty: s.minDifficulty,
+                moneyMax: s.moneyMax,
+                timeOffset: i * 5
+            }
+        })
         .filter(s => s.moneyMax > 0
             && s.hasAdminRights
             && s.hackDifficulty == s.minDifficulty
             && s.moneyAvailable == s.moneyMax)
 
 
+
+
     const localhost = ns.getServer(ns.getHostname())
     const cores = localhost.cpuCores
-
-    const totalRam = servers.reduce((a, s) => {
-        const hackThreads = Math.floor(ns.hackAnalyzeThreads(s.hostname, s.moneyAvailable * take))
-        const growThreads = Math.ceil(ns.growthAnalyze(s.hostname, 1 / (1 - take), cores))
-        const weakenThreads = Math.ceil(ns.hackAnalyzeSecurity(hackThreads, s.hostname) + 0.004 * growThreads / ns.weakenAnalyze(1, cores))
-        const hackRam = hackThreads * ns.getScriptRam("x-hack.js") * ns.getHackTime(s.hostname) / interval
-        const growRam = growThreads * ns.getScriptRam("x-grow.js") * ns.getGrowTime(s.hostname) / interval
-        const weakenRam = weakenThreads * ns.getScriptRam("x-weaken.js") * ns.getWeakenTime(s.hostname) / interval
-        return a + hackRam + growRam + weakenRam
-    }, 0) * 2
-
-    if (totalRam > localhost.maxRam - localhost.ramUsed) {
-        ns.tprint(`Total RAM needed for one batch: ${totalRam.toFixed(2)}GB only ${localhost.maxRam - localhost.ramUsed} available. Adjusting interval: ${interval}ms`)
-        interval = interval * Math.round(totalRam / (localhost.maxRam - localhost.ramUsed))
-        spacer = interval / 5
-    }
-    ns.tprint(`Total RAM needed for one batch: ${totalRam.toFixed(2)}GB. Adjusted interval: ${interval}ms`)
+    const workers = ns.getPurchasedServers()
 
     /**
-     * @param {import("../../NetscriptDefinitions").Server} s 
+     * @param {target} s 
+     * @return {number} pid of the hack script
+     */
+    function workerHack(s) {
+        const h = s.hostname
+        const threads = Math.floor(ns.hackAnalyzeThreads(h, s.moneyMax * take))
+        if (threads < 1)
+            return -1
+        for (let i = 0; i < workers.length; i++) {
+            const pid = ns.exec("x-hack.js", workers[i], threads, h)
+            if (pid > 0)
+                return pid
+        }
+        return 0
+    }
+
+    /**
+     * @param {target} s 
      * @return {number} pid of the hack script
      */
     function hack(s) {
@@ -52,10 +69,27 @@ export async function main(ns) {
         const threads = Math.floor(ns.hackAnalyzeThreads(h, s.moneyMax * take))
         if (threads < 1)
             return -1
-        return ns.run("x-hack.js", threads, h)
+        const pid = ns.run("x-hack.js", threads, h)
+        if (pid > 0) {
+            return pid
+        }
+        return workerHack(s)
     }
     /**
-     * @param {import("../../NetscriptDefinitions").Server} s 
+     * @param {target} s 
+     * @return {number} pid of the hack script
+     */
+    function workerGrow(s) {
+        const h = s.hostname
+        for (let i = 0; i < workers.length; i++) {
+            const pid = ns.exec("x-grow.js", workers[i], Math.ceil(ns.growthAnalyze(h, 1 / (1 - take), 1) * 1.2), h)
+            if (pid > 0)
+                return pid
+        }
+        return 0
+    }
+    /**
+     * @param {target} s 
      * @return {number} pid of the hack script
      */
     function grow(s) {
@@ -65,25 +99,48 @@ export async function main(ns) {
             ns.print(`Security level of ${h} is too high to grow! Current: ${securityLevel.toFixed(2)}, minimum: ${s.minDifficulty.toFixed(2)}`)
             return -1
         }
-        return ns.run("x-grow.js", Math.ceil(ns.growthAnalyze(h, 1 / (1 - take), cores) * 1.2), h)
+        const pid = ns.run("x-grow.js", Math.ceil(ns.growthAnalyze(h, 1 / (1 - take), cores) * 1.2), h)
+        if (pid > 0)
+            return pid
+        return workerGrow(s)
     }
     /**
-     * @param {import("../../NetscriptDefinitions").Server} s 
+     * @param {target} s 
+     * @return {number} pid of the hack script
+     */
+    function workerWeaken(s) {
+        const h = s.hostname
+        const hackThreads = Math.floor(ns.hackAnalyzeThreads(h, s.moneyAvailable * take))
+        const growThreads = Math.ceil(ns.growthAnalyze(h, 1 / (1 - take), 1) * 1.2)
+        const threads = 2 + Math.ceil(2.5 * (ns.hackAnalyzeSecurity(hackThreads, h) + 0.004 * growThreads) / ns.weakenAnalyze(1, 1))
+        for (let i = 0; i < workers.length; i++) {
+            const pid = ns.exec("x-weaken.js", workers[i], threads, h)
+            if (pid > 0)
+                return pid
+        }
+        return 0
+    }
+    /**
+     * @param {target} s 
      * @return {number} pid of the hack script
      */
     function weaken(s) {
         const h = s.hostname
         const hackThreads = Math.floor(ns.hackAnalyzeThreads(h, s.moneyAvailable * take))
         const growThreads = Math.ceil(ns.growthAnalyze(h, 1 / (1 - take), cores) * 1.2)
-        return ns.run("x-weaken.js", 2 + Math.ceil(1.2 * ns.hackAnalyzeSecurity(hackThreads, h) + 0.004 * growThreads / ns.weakenAnalyze(1, cores)), h)
+        const pid = ns.run("x-weaken.js", 2 + Math.ceil(2.5 * (ns.hackAnalyzeSecurity(hackThreads, h) + 0.004 * growThreads / ns.weakenAnalyze(1, cores))), h)
+        if (pid > 0)
+            return pid
+        return workerWeaken(s)
     }
 
     let batchNumber = 0
-    /**@type {{op:(String)=>Number, batchNumber: number, s: import("../../NetscriptDefinitions").Server, t: number,isBatch: boolean}[]} */
+    /**@typedef  {{op:(String)=>Number, batchNumber: number, s: target, t: number,isBatch: boolean}} job*/
+    /**@type {job[]} */
     let queue = []
 
     /**
-     * @param {import("../../NetscriptDefinitions").Server} s 
+     * @param {target} s 
      */
     function batch(s) {
         let pid = weaken(s)
@@ -95,13 +152,9 @@ export async function main(ns) {
         queue.push({ op: grow, batchNumber: batchNumber, s: s, t: now + ns.getWeakenTime(s.hostname) - ns.getGrowTime(s.hostname) - spacer, isBatch: false })
         queue.push({ op: hack, batchNumber: batchNumber, s: s, t: now + ns.getWeakenTime(s.hostname) - ns.getHackTime(s.hostname) - spacer * 2, isBatch: false })
         batchNumber++
-        let nextBatchTime = now + interval + spacer / 2 - (now % interval)
+        let nextBatchTime = now + interval - (now % interval) + s.timeOffset
         if (nextBatchTime < now) {
             nextBatchTime += interval
-        }
-        if (queue.some(o => o.t == nextBatchTime && o.isBatch && o.s.hostname == s.hostname)) {
-            queue.sort((a, b) => a.t - b.t)
-            return
         }
         queue.push({ op: batch, batchNumber: batchNumber, s: s, t: nextBatchTime, isBatch: true })
         debug(`Scheduled batch ${batchNumber} for ${s.hostname} at ${nextBatchTime.toFixed(0)}`)
@@ -114,8 +167,14 @@ export async function main(ns) {
         debug(`Scheduled first batch for ${s.hostname}`)
     }
 
+    /**
+     * 
+     * @param {Number} time 
+     * @param {job} job 
+     * @returns 
+     */
     function rescheduleBatch(time, job) {
-        let nextBatchTime = time + interval - (time % interval)
+        let nextBatchTime = time + interval - (time % interval) + job.s.timeOffset
         if (nextBatchTime < time) {
             nextBatchTime += interval
         }

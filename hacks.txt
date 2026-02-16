@@ -1,0 +1,2 @@
+run hacks/workers.js --tail omnitek global-pharm deltaone zeus-med nova-med alpha-ent zb-def snap-fitness
+run hacks/workers.js --tail nwo megacorp omnitek blade b-and-a clarkinc 4sigma ecorp

@@ -7,6 +7,10 @@ export async function main(ns) {
 
     for (const h of myServers) {
         ns.scp(["x-grow.js",
+            "/hacks/main.js",
+            "/hacks/schedule.js",
+            "/hacks/restore.js",
+            "/hacks/root.js",
             "x-hack.js", "x-weaken.js", "x-share.js",
             "x-grow-inf.js", "x-hack-inf.js", "x-weaken-inf.js"
             , "show-rooted.js", "/util/hosts.js", "/util/render-table.js"], h.host)

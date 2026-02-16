@@ -3,7 +3,7 @@ import { renderTable } from "../util/render-table";
 
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
-    const myServers = getAllHosts(ns).filter(h => !h.info.hasAdminRights).sort((a, b) => b.info.baseDifficulty - a.info.baseDifficulty)
+    const myServers = getAllHosts(ns).filter(h => !h.info.hasAdminRights).sort((a, b) => b.info.requiredHackingSkill - a.info.requiredHackingSkill)
 
     renderTable(ns.tprintf, myServers.map((h) => {
         let x = (h.info.baseDifficulty - h.info.minDifficulty)
@@ -20,7 +20,7 @@ export async function main(ns) {
             secured: (h.info.hackDifficulty - h.info.minDifficulty) / x * 100,
             level: h.info.requiredHackingSkill,
             ports: h.info.numOpenPortsRequired,
-            
+
         }
     }))
 }

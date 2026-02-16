@@ -3,8 +3,9 @@ import { fmt } from "../util/render-table";
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
     const hostPrefix = "worker-"
+    const max = Number(ns.args[0] ?? 1)
 
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < max; i++) {
 
         const nextNr = ns.getPurchasedServers()
             .filter(s => s.startsWith(hostPrefix))
@@ -15,16 +16,13 @@ export async function main(ns) {
         ns.purchaseServer(hostname, 2 ** 20)
 
         ns.scp(["x-grow.js",
-            "x-hack.js",
-            "x-weaken.js",
-            "x-share.js",
-            "show-rooted.js",
-            "/util/hosts.js",
-            "/util/render-table.js",
             "/hacks/main.js",
-            "/hacks/restore.js"
-        ], hostname)
-
+            "/hacks/schedule.js",
+            "/hacks/restore.js",
+            "/hacks/root.js",
+            "x-hack.js", "x-weaken.js", "x-share.js",
+            "x-grow-inf.js", "x-hack-inf.js", "x-weaken-inf.js"
+            , "show-rooted.js", "/util/hosts.js", "/util/render-table.js"], hostname)
         const ramNeeded = ns.getScriptRam("x-share.js", hostname)
         ns.exec("x-share.js", hostname, Math.floor(2 ** 20 / ramNeeded))
         ns.tprint(`Purchased new server ${hostname} with 1TB RAM running x-share.js`)
