@@ -6,14 +6,8 @@ export async function main(ns) {
 
     const g = ns.gang
 
-
-
-    renderTable(ns.tprint, g.getMemberNames().map((m) => {
-        return {
-            name: m,
-            ...g.getAscensionResult(m)
-        }
-    }))
-
+    g.getMemberNames().forEach((m)=> {
+        g.setMemberTask(m,"Train Charisma")
+    })
 
 }

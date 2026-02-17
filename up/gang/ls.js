@@ -6,7 +6,7 @@ export async function main(ns) {
 
     const g = ns.gang
 
-    renderTable(ns.tprint, [g.getGangInformation()])
+    renderTable(ns.tprint, Object.entries(g.getGangInformation()))
 
     const others = g.getOtherGangInformation()
     renderTable(ns.tprint, Object.keys(others).map((k) => {
@@ -22,6 +22,8 @@ export async function main(ns) {
             let r = g.getTaskStats(t)
             delete r.desc
             delete r.territory
+           
+            r.baseRespect *= 1000
             for (const key in r) {
                 if (!Object.hasOwn(r, key)) continue;
 
