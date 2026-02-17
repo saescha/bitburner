@@ -15,14 +15,14 @@ function renderTable(print, content) {
     let colWidths = keys.map((k) => Math.max(k.length, ...content.map(r => fmt(r[k]).length)))
     console.log(colWidths)
 
-    const sep = colWidths.reduce((p, c) => p + "-".repeat(c + 2) + "+", "+")
-    print(sep)
-    print(keys.reduce((p, c, i) => p + " " + c + " ".repeat(colWidths[i] - c.length) + " |", "|"))
-    print(sep)
+    const sep = colWidths.reduce((p, c) => p + "─".repeat(c + 2) + "┬", "┌").slice(0, -1) + "┐";
+    print(colWidths.reduce((p, c) => p + "─".repeat(c + 2) + "┬", "┌").slice(0, -1) + "┐")
+    print(keys.reduce((p, c, i) => p + " " + c + " ".repeat(colWidths[i] - c.length) + " │", "│"))
+    print(colWidths.reduce((p, c) => p + "─".repeat(c + 2) + "┼", "├").slice(0, -1) + "┤")
     for (const row of content) {
-        print(keys.reduce((p, c, i) => p + " " + fmt(row[c]) + " ".repeat(colWidths[i] - fmt(row[c]).length) + " |", "|"))
+        print(keys.reduce((p, c, i) => p + " " + fmt(row[c]) + " ".repeat(colWidths[i] - fmt(row[c]).length) + " │", "│"))
     }
-    print(sep)
+    print(colWidths.reduce((p, c) => p + "─".repeat(c + 2) + "┴", "└").slice(0, -1) + "┘")
 }
 function fmt(value) {
     if (typeof value != "number") return String(value);

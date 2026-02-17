@@ -1,31 +1,38 @@
-import { calculateRespectGain } from "./helpers"
+import { calculateRespectGain, calculateWantedLevelGain } from "./helpers"
 
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
 
     ns.disableLog("sleep")
+    ns.disableLog("gang.setTerritoryWarfare")
 
     const g = ns.gang
 
-    const gang = g.getGangInformation()
     const combatStatkeys = ["str", "agi", "def", "dex"]
     const memberPrefix = "m-"
 
     while (true) {
+        const gang = g.getGangInformation()
+        const others = g.getOtherGangInformation()
+        const isStrongest = Object.keys(others).filter(k => k != gang.faction && others[k].power * 1.5 > gang.power).length == 0
+
+        g.setTerritoryWarfare(isStrongest)
         let names = g.getMemberNames()
+        let members = g.getMemberNames().map(g.getMemberInformation)
 
         /**
          * 
          * @param {import("../../NetscriptDefinitions").GangMemberInfo} member 
-         * @param {String} task 
+         * @param {import("../../NetscriptDefinitions").GangTaskStats} task 
          * @returns {boolean}
          */
         function assign(member, task) {
-            if (member.task == task) {
+            if (member.task == task.name) {
                 return false
             }
-            ns.print(`${member.name} changing task from ${member.task} to ${task}`)
-            return g.setMemberTask(member.name, task)
+            ns.print(`${member.name} changing task from ${member.task} to ${task.name}`)
+            member.task = task.name
+            return g.setMemberTask(member.name, task.name)
         }
 
         for (let i = 0; i < 25; i++) {
@@ -44,33 +51,98 @@ export async function main(ns) {
             const ascent = g.getAscensionResult(n)
             if (!ascent)
                 return
+            if (members.length < 11 && ascent.respect && ascent.respect * 2 > gang.respect) {
+                return
+            }
             if (Object.keys(ascent)
                 .filter((k) => k != "respect")
-                .reduce((p, v) => p * ascent[v], 1) > 1.2 ** 6) {
+                .reduce((p, v) => p * ascent[v], 1) > 2) {
                 g.ascendMember(n)
             }
         })
 
-        let members = g.getMemberNames().map(g.getMemberInformation)
-        let unassignedMembers = []
+        let membersReady = []
+        let tasks = new Map(g.getTaskNames().map(t => [t, g.getTaskStats(t)]))
+
+        const trainLimit = 130
 
         for (const m of members) {
-            if (m.hack < 100) {
-                assign(m, "Train Hacking")
+            if (m.hack < 400 && m.hack < 2 * trainLimit / 3 * m.hack_asc_mult) {
+                assign(m, tasks.get("Train Hacking"))
                 continue
             }
-            if (combatStatkeys.reduce((p, v) => p || m[v] < 100, false)) {
-                assign(m, "Train Combat")
+            if (combatStatkeys.reduce((p, v) => p || m[v] < 400 && m[v] < trainLimit * m[v + "_asc_mult"], false)) {
+                assign(m, tasks.get("Train Combat"))
                 continue
             }
-            if (m.cha < 100) {
-                assign(m, "Train Charisma")
+            if (m.cha < 150 && m.cha < trainLimit / 2 * m.cha_asc_mult) {
+                assign(m, tasks.get("Train Charisma"))
                 continue
             }
-            assign(m, "Mug People")
+
+            membersReady.push(m)
+        }
+
+        if (members.length < 11) {
+            let bestTaskForRespect = null
+            let bestRespectGain = 0
+            for (const t of tasks.values()) {
+                if (t.baseRespect == 0) {
+                    continue
+                }
+                let membersForTask = membersReady.toSorted((a, b) => calculateRespectGain(gang, b, t) - calculateRespectGain(gang, a, t))
+                let wantedLevelGain = 0
+                let respectGain = 0
+                while (membersForTask.length > 0) {
+                    const m = membersForTask.shift()
+                    wantedLevelGain += calculateWantedLevelGain(gang, m, t)
+                    respectGain += calculateRespectGain(gang, m, t)
+                    while (wantedLevelGain > 0 && membersForTask.length > 0) {
+                        const m2 = membersForTask.pop()
+                        wantedLevelGain += calculateWantedLevelGain(gang, m2, tasks.get("Vigilante Justice"))
+                    }
+                    if (wantedLevelGain <= 0) {
+                        if (respectGain > bestRespectGain) {
+                            bestRespectGain = respectGain
+                            bestTaskForRespect = t
+                        }
+                    }
+                }
+
+            }
+
+            if (bestTaskForRespect) {
+                const t = bestTaskForRespect
+                let membersForTask = membersReady.toSorted((a, b) => calculateRespectGain(gang, b, t) - calculateRespectGain(gang, a, t))
+                let wantedLevelGain = 0
+                while (membersForTask.length > 0) {
+                    const m = membersForTask.shift()
+                    wantedLevelGain += calculateWantedLevelGain(gang, m, t)
+                    assign(m, t)
+                    while (wantedLevelGain > 0 && membersForTask.length > 0) {
+                        const m2 = membersForTask.pop()
+                        wantedLevelGain += calculateWantedLevelGain(gang, m2, tasks.get("Vigilante Justice"))
+                        assign(m2, tasks.get("Vigilante Justice"))
+                    }
+                }
+                membersForTask.forEach(m => assign(m, tasks.get("Mug People")))
+            } else {
+                if (gang.wantedLevel > 0) {
+                    membersReady.forEach(m => assign(m, tasks.get("Vigilante Justice")))
+                } else {
+                    membersReady.forEach(m => assign(m, tasks.get("Mug People")))
+                }
+                membersReady = []
+            }
+        } else if (!isStrongest) {
+            membersReady.forEach(m => assign(m, tasks.get("Territory Warfare")))
+            if (gang.wantedLevel > 1) {
+                assign(membersReady[membersReady.length - 1], tasks.get("Vigilante Justice"))
+            }
         }
 
 
         await ns.sleep(5000)
+        continue
     }
 }

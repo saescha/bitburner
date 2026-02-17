@@ -6,5 +6,5 @@ import { renderTable } from "../../util/render-table";
 export async function main(ns) {
     const g = ns.gang
 
-    renderTable(ns.tprintf, g.getMemberNames().map((g.getAscensionResult)).filter(x => x))
+    renderTable(ns.tprintf, g.getMemberNames().map((g.getAscensionResult)).filter(x => x && x.respect))
 }
