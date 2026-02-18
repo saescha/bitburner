@@ -1,6 +1,8 @@
+import { getAllHosts } from "../util/hosts"
+
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
-    const take = 0.1
+    const take = 0.25
     let interval = 150
     let spacer = interval / 3
     ns.disableLog("ALL")
@@ -13,9 +15,9 @@ export async function main(ns) {
     /**@typedef {{hostname: String,hasAdminRights:boolean,hackDifficulty: Number,moneyAvailable:Number,moneyMax: Number,minDifficulty:Number,timeOffset:Number}} target*/
 
     /** @type {target[]} */
-    const servers = (ns.args.length > 0 ? ns.args.map(String) : ["sigma-cosmetics"])
+    const servers = getAllHosts(ns)
         .map((h, i) => {
-            const s = ns.getServer(h)
+            const s = h.info
             return {
                 hostname: s.hostname,
                 hasAdminRights: s.hasAdminRights,
@@ -25,11 +27,12 @@ export async function main(ns) {
                 moneyMax: s.moneyMax,
                 timeOffset: i * 5
             }
-        })
-        .filter(s => s.moneyMax > 0
-            && s.hasAdminRights
-            && s.hackDifficulty == s.minDifficulty
-            && s.moneyAvailable == s.moneyMax)
+        }).filter(s => s.hasAdminRights && s.moneyMax > 0
+            && s.moneyAvailable === s.moneyMax
+            && s.hackDifficulty === s.minDifficulty
+            && s.hostname != "fulcrumassets"
+            && (ns.args.length == 0 || ns.args.includes(s.hostname))
+        ).toSorted((a, b) => b.moneyMax - a.moneyMax).slice(0, 7)
 
 
 
@@ -44,9 +47,8 @@ export async function main(ns) {
      */
     function workerHack(s) {
         const h = s.hostname
-        const threads = Math.floor(ns.hackAnalyzeThreads(h, s.moneyMax * take))
-        if (threads < 1)
-            return -1
+        const threads = Math.min(Math.floor(ns.hackAnalyzeThreads(h, s.moneyMax * take)), 1)
+
         for (let i = 0; i < workers.length; i++) {
             const pid = ns.exec("x-hack.js", workers[i], threads, h)
             if (pid > 0)
@@ -66,7 +68,7 @@ export async function main(ns) {
             ns.print(`Security level of ${h} is too high to hack! Current: ${securityLevel.toFixed(2)}, minimum: ${s.minDifficulty.toFixed(2)}`)
             return -1
         }
-        const threads = Math.floor(ns.hackAnalyzeThreads(h, s.moneyMax * take))
+        const threads = Math.min(Math.floor(ns.hackAnalyzeThreads(h, s.moneyMax * take)), 1)
         if (threads < 1)
             return -1
         const pid = ns.run("x-hack.js", threads, h)

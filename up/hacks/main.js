@@ -3,9 +3,9 @@ import { getAllHosts } from "../util/hosts"
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
     ns.disableLog("ALL")
-    const interval = 5000
+    const interval = 150
     const spacer = interval / 5
-    const take = 0.05
+    const take = 0.10
 
     /**
      * 
@@ -22,7 +22,7 @@ export async function main(ns) {
             && s.hackDifficulty === s.minDifficulty
             && s.hostname != "fulcrumassets"
             && (ns.args.length == 0 || ns.args.includes(s.hostname))
-        )
+        ).toSorted((a, b) => b.moneyMax - a.moneyMax).slice(0, 7)
         .map(srv => {
             const s = srv
             const h = s.hostname

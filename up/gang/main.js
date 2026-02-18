@@ -61,6 +61,13 @@ export async function main(ns) {
             }
         })
 
+        if (ns.getPlayer().money > 10 ** 12) {
+            members.forEach(m => {
+                g.getEquipmentNames().forEach(e => {
+                    g.purchaseEquipment(m.name, e)
+                })
+            })
+        }
         let membersReady = []
         let tasks = new Map(g.getTaskNames().map(t => [t, g.getTaskStats(t)]))
 

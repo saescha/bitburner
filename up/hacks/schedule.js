@@ -1,3 +1,5 @@
+import { getAllHosts } from "../util/hosts"
+
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
     const take = 0.1
@@ -10,12 +12,14 @@ export async function main(ns) {
         // ns.print(t, ...args)
     }
 
-    const servers = (ns.args.length > 0 ? ns.args.map(String) : ["sigma-cosmetics"])
-        .map(h => ns.getServer(h))
-        .filter(s => s.moneyMax > 0
-            && s.hasAdminRights
-            && s.hackDifficulty == s.minDifficulty
-            && s.moneyAvailable == s.moneyMax)
+    const servers = getAllHosts(ns)
+        .map(h => h.info)
+        .filter(s => s.hasAdminRights && s.moneyMax > 0
+            && s.moneyAvailable === s.moneyMax
+            && s.hackDifficulty === s.minDifficulty
+            && s.hostname != "fulcrumassets"
+            && (ns.args.length == 0 || ns.args.includes(s.hostname))
+        ).toSorted((a, b) => b.moneyMax - a.moneyMax).slice(0, 7)
 
 
     const localhost = ns.getServer(ns.getHostname())
