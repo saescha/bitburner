@@ -1,4 +1,4 @@
-import { calculateRespectGain, calculateWantedLevelGain } from "./helpers"
+import { calculateMoneyGain, calculateRespectGain, calculateWantedLevelGain } from "./helpers"
 
 /** @param {import("../../NetscriptDefinitions").NS} ns */
 export async function main(ns) {
@@ -14,7 +14,7 @@ export async function main(ns) {
     while (true) {
         const gang = g.getGangInformation()
         const others = g.getOtherGangInformation()
-        const isStrongest = Object.keys(others).filter(k => k != gang.faction && others[k].power * 1.5 > gang.power).length == 0
+        const isStrongest = Object.keys(others).filter(k => k != gang.faction && others[k].territory > 0 && others[k].power * 1.5 > gang.power).length == 0
 
         g.setTerritoryWarfare(isStrongest)
         let names = g.getMemberNames()
@@ -82,8 +82,9 @@ export async function main(ns) {
 
             membersReady.push(m)
         }
+        const membersNeeded = Math.min(12, 3 + Math.floor(gang.territory * 50))
 
-        if (members.length < 11) {
+        if (members.length < membersNeeded) {
             let bestTaskForRespect = null
             let bestRespectGain = 0
             for (const t of tasks.values()) {
@@ -138,6 +139,56 @@ export async function main(ns) {
             membersReady.forEach(m => assign(m, tasks.get("Territory Warfare")))
             if (gang.wantedLevel > 1) {
                 assign(membersReady[membersReady.length - 1], tasks.get("Vigilante Justice"))
+            }
+        } else {
+            let bestTaskForMoney = null
+            let bestMoneyGain = 0
+            for (const t of tasks.values()) {
+                if (t.baseMoney == 0) {
+                    continue
+                }
+                let membersForTask = membersReady.toSorted((a, b) => calculateMoneyGain(gang, b, t) - calculateMoneyGain(gang, a, t))
+                let wantedLevelGain = 0
+                let moneyGain = 0
+                while (membersForTask.length > 0) {
+                    const m = membersForTask.shift()
+                    wantedLevelGain += calculateWantedLevelGain(gang, m, t)
+                    moneyGain += calculateMoneyGain(gang, m, t)
+                    while (wantedLevelGain > 0 && membersForTask.length > 0) {
+                        const m2 = membersForTask.pop()
+                        wantedLevelGain += calculateWantedLevelGain(gang, m2, tasks.get("Vigilante Justice"))
+                    }
+                    if (wantedLevelGain <= 0) {
+                        if (moneyGain > bestMoneyGain) {
+                            bestMoneyGain = moneyGain
+                            bestTaskForMoney = t
+                        }
+                    }
+                }
+
+                if (bestTaskForMoney) {
+                    const t = bestTaskForMoney
+                    let membersForTask = membersReady.toSorted((a, b) => calculateMoneyGain(gang, b, t) - calculateMoneyGain(gang, a, t))
+                    let wantedLevelGain = 0
+                    while (membersForTask.length > 0) {
+                        const m = membersForTask.shift()
+                        wantedLevelGain += calculateWantedLevelGain(gang, m, t)
+                        assign(m, t)
+                        while (wantedLevelGain > 0 && membersForTask.length > 0) {
+                            const m2 = membersForTask.pop()
+                            wantedLevelGain += calculateWantedLevelGain(gang, m2, tasks.get("Vigilante Justice"))
+                            assign(m2, tasks.get("Vigilante Justice"))
+                        }
+                    }
+                } else {
+                    if (gang.wantedLevel > 0) {
+                        membersReady.forEach(m => assign(m, tasks.get("Vigilante Justice")))
+                    } else {
+                        membersReady.forEach(m => assign(m, tasks.get("Mug People")))
+                    }
+                    membersReady = []
+                }
+
             }
         }
 

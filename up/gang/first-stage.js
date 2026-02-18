@@ -32,7 +32,7 @@ export async function main(ns) {
         const others = g.getOtherGangInformation()
         const isStrongest = Object.keys(others).filter(k => k != gang.faction && others[k].power * 1.5 > gang.power).length == 0
 
-        g.setTerritoryWarfare(isStrongest)
+        g.setTerritoryWarfare(isStrongest && gang.territory < 1)
         let names = g.getMemberNames()
 
 
