@@ -30,7 +30,8 @@ export async function main(ns) {
     while (true) {
         const gang = g.getGangInformation()
         const others = g.getOtherGangInformation()
-        const isStrongest = Object.keys(others).filter(k => k != gang.faction && others[k].power * 1.5 > gang.power).length == 0
+        const strongestOtherPower = Object.keys(others).filter(k => k != gang.faction && others[k].territory > 0).reduce((p, v) => Math.max(p, others[v].power), 0)
+        const isStrongest = Object.keys(others).filter(k => k != gang.faction && others[k].territory > 0 && others[k].power * 1.5 > gang.power).length == 0
 
         g.setTerritoryWarfare(isStrongest && gang.territory < 1)
         let names = g.getMemberNames()

@@ -73,6 +73,6 @@ export async function main(ns) {
             // }
         }
 
-        await ns.sleep(4000)
+        await ns.stock.nextUpdate();
     }
 }
